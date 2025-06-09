@@ -10,7 +10,7 @@ services:
       - mongo-data:/data/db
 
   backend:
-    build: ./my-backend
+    build: .
     container_name: backend
     ports:
       - "5000:5000"
@@ -22,7 +22,7 @@ services:
       - ./my-backend:/app
 
   frontend:
-    build: ./my-app
+    build: ../my-app
     container_name: frontend
     ports:
       - "3000:3000"
@@ -33,7 +33,7 @@ services:
       - /app/node_modules
 
   cypress:
-    build: ./automation
+    build: ../automation
     container_name: cypress
     depends_on:
       frontend:

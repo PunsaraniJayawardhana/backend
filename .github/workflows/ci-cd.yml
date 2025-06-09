@@ -42,26 +42,40 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-        # --- ADD THIS NEW STEP HERE ---
       - name: Install Docker Compose
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose
-      # ----------------------------
 
       - name: Build Docker Images (with docker-compose)
-        run: docker-compose -f my-backend/docker-compose.yml build # Points to the docker-compose file
+        # --- MODIFICATION HERE ---
+        # Change directory to where docker-compose.yml is before running the command
+        run: |
+          cd my-backend/
+          docker-compose -f docker-compose.yml build
+        # -------------------------
 
       - name: Start Services for Testing
-        # Waits for backend and frontend to be healthy before Cypress runs
-        run: docker-compose -f my-backend/docker-compose.yml up -d --wait-for-service-healthy backend frontend
+        # --- MODIFICATION HERE ---
+        run: |
+          cd my-backend/
+          docker-compose -f docker-compose.yml up -d --wait-for-service-healthy backend frontend
+        # -------------------------
 
       - name: Run Cypress Tests
-        run: docker-compose -f my-backend/docker-compose.yml exec cypress npx cypress run --record --key ${{ secrets.CYPRESS_RECORD_KEY }}
+        # --- MODIFICATION HERE ---
+        run: |
+          cd my-backend/
+          docker-compose -f docker-compose.yml exec cypress npx cypress run --record --key ${{ secrets.CYPRESS_RECORD_KEY }}
+        # -------------------------
 
       - name: Stop Services
-        if: always() # Always run this to clean up containers
-        run: docker-compose -f my-backend/docker-compose.yml down
+        if: always()
+        # --- MODIFICATION HERE ---
+        run: |
+          cd my-backend/
+          docker-compose -f docker-compose.yml down
+        # -------------------------
 
   deploy:
     needs: build-and-test # This job runs only if 'build-and-test' passes
