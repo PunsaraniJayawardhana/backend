@@ -77,9 +77,6 @@ jobs:
       - name: Start Services for Testing
         run: docker-compose -f my-backend/docker-compose.yml up -d --wait-for-service-healthy backend frontend
 
-      - name: Debug - List files in Cypress container
-        run: docker-compose -f my-backend/docker-compose.yml run --rm cypress ls -R /e2e
-
       
       - name: Run Cypress Tests
         run: docker-compose -f my-backend/docker-compose.yml run --rm --entrypoint "" cypress ls -R /e2e
