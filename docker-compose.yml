@@ -19,7 +19,7 @@ services:
     depends_on:
       - mongo
     volumes:
-      - ./my-backend:/app
+      - .:/app
 
   frontend:
     build: ../my-app
@@ -29,7 +29,7 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./my-app:/app
+      - ../my-app:/app
       - /app/node_modules
 
   cypress:
@@ -43,7 +43,7 @@ services:
     environment:
       - CYPRESS_baseUrl=http://frontend:3000
     volumes:
-      - ./automation:/e2e
+      - ../automation:/e2e
 
 volumes:
   mongo-data:
