@@ -35,6 +35,7 @@ services:
 
   cypress:
     build: ../automation
+    working_dir: /e2e
     container_name: cypress
     depends_on:
       - frontend

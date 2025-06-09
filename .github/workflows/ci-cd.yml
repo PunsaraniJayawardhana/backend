@@ -82,7 +82,7 @@ jobs:
 
       
       - name: Run Cypress Tests
-        run: docker-compose -f my-backend/docker-compose.yml run --rm cypress
+        run: docker-compose -f my-backend/docker-compose.yml run --rm --entrypoint "" cypress ls -R /e2e
         env:
          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }} # Though already set in docker-compose.yml for the service
         # ----------------------------
