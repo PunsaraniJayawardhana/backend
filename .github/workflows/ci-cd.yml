@@ -77,18 +77,14 @@ jobs:
       - name: Start Services for Testing
         run: docker-compose -f my-backend/docker-compose.yml up -d --wait-for-service-healthy backend frontend
 
-      # ... (inside build-and-test job, after Start Services for Testing) ...
+      - name: Debug - List files in Cypress container
+        run: docker-compose -f my-backend/docker-compose.yml run --rm cypress ls -R /e2e
 
+      
       - name: Run Cypress Tests
-        # --- CRITICAL CHANGE HERE ---
-        # Change from 'exec' to 'run --rm'
-        # This will execute the default CMD in your Cypress Dockerfile and output its logs.
         run: docker-compose -f my-backend/docker-compose.yml run --rm cypress
         env:
-          # Pass the CYPRESS_RECORD_KEY as an environment variable to the container
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-          # You can also pass other Cypress-specific env vars here if needed, e.g.:
-          # CYPRESS_BASE_URL: http://frontend:3000 # Though already set in docker-compose.yml for the service
+         CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}end:3000 # Though already set in docker-compose.yml for the service
         # ----------------------------
 
       - name: Stop Services
