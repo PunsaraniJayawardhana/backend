@@ -10,8 +10,8 @@ on:
 
 env:
   AWS_REGION: us-east-1 # <<<--- CUSTOMIZE: Your AWS region (e.g., ap-south-1)
-  ECR_REPOSITORY_FRONTEND: frontend # <<<--- CUSTOMIZE: Name of your ECR repo for frontend
-  ECR_REPOSITORY_BACKEND: backend # <<<--- CUSTOMIZE: Name of your ECR repo for backend
+  ECR_REPOSITORY_FRONTEND: my-app-frontend # <<<--- CUSTOMIZE: Name of your ECR repo for frontend
+  ECR_REPOSITORY_BACKEND: my-app-backend # <<<--- CUSTOMIZE: Name of your ECR repo for backend
   # <<<--- CUSTOMIZE: Update with your GitHub username/organization and repository names
   REPO_FRONTEND: PunsaraniJayawardhana/frontend
   REPO_AUTOMATION: PunsaraniJayawardhana/testing
