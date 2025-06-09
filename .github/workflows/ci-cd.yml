@@ -12,7 +12,7 @@ on:
 env:
   AWS_REGION: us-east-1 # <<<--- CUSTOMIZE: Your AWS region (e.g., ap-south-1)
   ECR_REPOSITORY_FRONTEND: my-app-frontend # <<<--- CUSTOMIZE: Name of your ECR repo for frontend
-  ECR_REPOSITORY_BACKEND: my-app-backend   # <<<--- CUSTOMIZE: Name of your ECR repo for backend
+  ECR_REPOSITORY_BACKEND: my-app-backend # <<<--- CUSTOMIZE: Name of your ECR repo for backend
   # <<<--- CUSTOMIZE: Update with your GitHub username/organization and repository names
   REPO_FRONTEND: PunsaraniJayawardhana/frontend # Use the actual repo name for my-app
   REPO_AUTOMATION: PunsaraniJayawardhana/testing # Use the actual repo name for automation
@@ -62,7 +62,6 @@ jobs:
           echo "--- Verifying content of my-backend/docker-compose.yml: ---"
           cat my-backend/docker-compose.yml
       # --- END OF NEW DEBUGGING STEPS ---
-
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -77,18 +76,16 @@ jobs:
       - name: Start Services for Testing
         run: docker-compose -f my-backend/docker-compose.yml up -d --wait-for-service-healthy backend frontend
 
-      
       - name: Run Cypress Tests
-        run: docker-compose -f my-backend/docker-compose.yml run --rm --entrypoint "" cypress ls -R /e2e
+        run: docker-compose -f my-backend/docker-compose.yml run --rm --entrypoint "" cypress npx cypress run --record --key $CYPRESS_RECORD_KEY
         env:
-         CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }} # Though already set in docker-compose.yml for the service
-        # ----------------------------
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
 
       - name: Stop Services
         if: always()
         run: docker-compose -f my-backend/docker-compose.yml down
 
-# ... (rest of your ci-cd.yml) ...
+  # ... (rest of your ci-cd.yml) ...
 
   deploy:
     needs: build-and-test
