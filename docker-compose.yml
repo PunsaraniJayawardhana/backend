@@ -1,0 +1,47 @@
+
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build: ./my-backend
+    container_name: backend
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URL=mongodb://mongo:27017/mydatabase
+    depends_on:
+      - mongo
+    volumes:
+      - ./my-backend:/app
+
+  frontend:
+    build: ./my-app
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./my-app:/app
+      - /app/node_modules
+
+  cypress:
+    build: ./automation
+    container_name: cypress
+    depends_on:
+      - frontend
+    environment:
+      - CYPRESS_baseUrl=http://frontend:3000
+    volumes:
+      - ./automation:/cypress:/e2e
+
+volumes:
+  mongo-data:

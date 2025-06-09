@@ -84,7 +84,7 @@ jobs:
       - name: Run Cypress Tests
         run: docker-compose -f my-backend/docker-compose.yml run --rm cypress
         env:
-         CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}end:3000 # Though already set in docker-compose.yml for the service
+         CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }} # Though already set in docker-compose.yml for the service
         # ----------------------------
 
       - name: Stop Services
