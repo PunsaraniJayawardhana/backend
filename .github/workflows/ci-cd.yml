@@ -1,20 +1,21 @@
+# my-backend/.github/workflows/ci-cd.yml
 name: Build, Test & Deploy (AWS)
 
 on:
   push:
     branches:
-      - main # Triggers when code is pushed to the 'main' branch in the backend repo
+      - main
   pull_request:
     branches:
-      - main # Triggers for pull requests to the 'main' branch
+      - main
 
 env:
   AWS_REGION: us-east-1 # <<<--- CUSTOMIZE: Your AWS region (e.g., ap-south-1)
-  ECR_REPOSITORY_FRONTEND: my-app-frontend # <<<--- CUSTOMIZE: Name of your ECR repo for frontend
-  ECR_REPOSITORY_BACKEND: my-app-backend # <<<--- CUSTOMIZE: Name of your ECR repo for backend
+  ECR_REPOSITORY_FRONTEND: your-frontend-repo-name # <<<--- CUSTOMIZE: Name of your ECR repo for frontend
+  ECR_REPOSITORY_BACKEND: your-backend-repo-name   # <<<--- CUSTOMIZE: Name of your ECR repo for backend
   # <<<--- CUSTOMIZE: Update with your GitHub username/organization and repository names
-  REPO_FRONTEND: PunsaraniJayawardhana/frontend
-  REPO_AUTOMATION: PunsaraniJayawardhana/testing
+  REPO_FRONTEND: your-github-username/frontend # Use the actual repo name for my-app
+  REPO_AUTOMATION: your-github-username/testing # Use the actual repo name for automation
 
 jobs:
   build-and-test:
@@ -23,32 +24,54 @@ jobs:
       - name: Checkout Backend Repository
         uses: actions/checkout@v4
         with:
-          path: my-backend # Checks out this repo (my-backend) into a folder named 'my-backend'
+          path: my-backend # Checks out THIS repo (my-backend) into a folder named 'my-backend'
 
       - name: Checkout Frontend Repository
         uses: actions/checkout@v4
         with:
           repository: ${{ env.REPO_FRONTEND }}
-          path: my-app # Checks out your frontend repo into 'my-frontend' folder
-          token: ${{ secrets.GH_PAT }} # Uses PAT for private repo access
+          path: my-app # Check out frontend repo into 'my-app' folder
+          token: ${{ secrets.GH_PAT }}
 
       - name: Checkout Automation Repository
         uses: actions/checkout@v4
         with:
           repository: ${{ env.REPO_AUTOMATION }}
-          path: testing # Checks out your automation repo into 'automation' folder
-          token: ${{ secrets.GH_PAT }} # Uses PAT for private repo access
+          path: automation # Checks out automation repo into 'automation' folder
+          token: ${{ secrets.GH_PAT }}
+
+      # --- START OF NEW DEBUGGING STEPS ---
+      - name: Debug - List Workspace Structure
+        run: |
+          echo "--- Current Working Directory: $(pwd) ---"
+          echo "--- Listing contents of the entire workspace: ---"
+          ls -F
+          echo ""
+          echo "--- Listing contents of 'my-backend' directory: ---"
+          ls -F my-backend/
+          echo ""
+          echo "--- Listing contents of 'my-app' directory: ---"
+          ls -F my-app/
+          echo ""
+          echo "--- Listing contents of 'automation' directory: ---"
+          ls -F automation/
+          echo ""
+          echo "--- Verifying content of automation/Dockerfile: ---"
+          cat automation/Dockerfile || echo "automation/Dockerfile not found or accessible."
+          echo ""
+          echo "--- Verifying content of my-backend/docker-compose.yml: ---"
+          cat my-backend/docker-compose.yml
+      # --- END OF NEW DEBUGGING STEPS ---
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Install Docker Compose # This step is crucial and must be present
+      - name: Install Docker Compose
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose
 
       - name: Build Docker Images (with docker-compose)
-        # This points to the docker-compose.yml, and its internal relative paths (../my-app, ../automation) will now work
         run: docker-compose -f my-backend/docker-compose.yml build
 
       - name: Start Services for Testing
@@ -62,9 +85,9 @@ jobs:
         run: docker-compose -f my-backend/docker-compose.yml down
 
   deploy:
-    needs: build-and-test # This job runs only if 'build-and-test' passes
+    needs: build-and-test
     runs-on: ubuntu-latest
-    environment: production # Optional: GitHub environment for tracking/protection
+    environment: production
     steps:
       - name: Checkout Backend Repository
         uses: actions/checkout@v4
@@ -75,9 +98,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ env.REPO_FRONTEND }}
-          path: my-frontend
+          path: my-app
           token: ${{ secrets.GH_PAT }}
 
+      # Remaining steps for AWS credentials, ECR login, building, and pushing images
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -90,10 +114,9 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and Tag Frontend Image for ECR
-        # Rebuilds as images from 'build-and-test' job are ephemeral
         run: |
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }} ./my-frontend
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_FRONTEND }}:latest ./my-frontend # Optional: Tag with latest
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }} ./my-app
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_FRONTEND }}:latest ./my-app
 
       - name: Build and Tag Backend Image for ECR
         run: |
@@ -110,25 +133,4 @@ jobs:
         run: |
           echo "Deployment initiated for Frontend and Backend images tagged with ${{ github.sha }}"
           # <<<--- CUSTOMIZE: REPLACE THIS SECTION with your actual AWS deployment commands.
-          # Example for ECS (Elastic Container Service):
-          # You would typically have an ECS Task Definition JSON file in your repo.
-          # You might update a service with a new task definition revision.
-          # aws ecs update-service --cluster YOUR_ECS_CLUSTER_NAME --service YOUR_ECS_FRONTEND_SERVICE_NAME \
-          #   --task-definition $(aws ecs register-task-definition --cli-input-json file://my-backend/ecs-frontend-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text) \
-          #   --force-new-deployment
-          # ...and similarly for the backend...
-          #
-          # Example for EC2 (SSH into instance and pull/run new images):
-          # This requires an SSH key stored as a GitHub Secret and the EC2 instance setup for Docker.
-          # uses: appleboy/ssh-action@v1.0.0
-          # with:
-          #   host: your-ec2-public-ip
-          #   username: ubuntu
-          #   key: ${{ secrets.SSH_PRIVATE_KEY }} # You'd add SSH_PRIVATE_KEY as another GitHub Secret
-          #   script: |
-          #     aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
-          #     cd /path/to/your/app-on-ec2 # Make sure your docker-compose.yml is here
-          #     docker-compose pull frontend backend
-          #     docker-compose up -d --force-recreate frontend backend
-          #
           echo "Remember to replace this placeholder with actual AWS deployment commands!"
