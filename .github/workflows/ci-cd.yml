@@ -1,0 +1,129 @@
+name: Build, Test & Deploy (AWS)
+
+on:
+  push:
+    branches:
+      - main # Triggers when code is pushed to the 'main' branch in the backend repo
+  pull_request:
+    branches:
+      - main # Triggers for pull requests to the 'main' branch
+
+env:
+  AWS_REGION: us-east-1 # <<<--- CUSTOMIZE: Your AWS region (e.g., ap-south-1)
+  ECR_REPOSITORY_FRONTEND: frontend # <<<--- CUSTOMIZE: Name of your ECR repo for frontend
+  ECR_REPOSITORY_BACKEND: backend   # <<<--- CUSTOMIZE: Name of your ECR repo for backend
+  # <<<--- CUSTOMIZE: Update with your GitHub username/organization and repository names
+  REPO_FRONTEND: PunsaraniJayawardhana/frontend
+  REPO_AUTOMATION: PunsaraniJayawardhana/testing
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Backend Repository
+        uses: actions/checkout@v4
+        with:
+          path: my-backend # Checks out this repo (my-backend) into a folder named 'my-backend'
+
+      - name: Checkout Frontend Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.REPO_FRONTEND }}
+          path: my-frontend # Checks out your frontend repo into 'my-frontend' folder
+          token: ${{ secrets.GH_PAT }} # Uses PAT for private repo access
+
+      - name: Checkout Automation Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.REPO_AUTOMATION }}
+          path: automation # Checks out your automation repo into 'automation' folder
+          token: ${{ secrets.GH_PAT }} # Uses PAT for private repo access
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Images (with docker-compose)
+        run: docker-compose -f my-backend/docker-compose.yml build # Points to the docker-compose file
+
+      - name: Start Services for Testing
+        # Waits for backend and frontend to be healthy before Cypress runs
+        run: docker-compose -f my-backend/docker-compose.yml up -d --wait-for-service-healthy backend frontend
+
+      - name: Run Cypress Tests
+        run: docker-compose -f my-backend/docker-compose.yml exec cypress npx cypress run --record --key ${{ secrets.CYPRESS_RECORD_KEY }}
+
+      - name: Stop Services
+        if: always() # Always run this to clean up containers
+        run: docker-compose -f my-backend/docker-compose.yml down
+
+  deploy:
+    needs: build-and-test # This job runs only if 'build-and-test' passes
+    runs-on: ubuntu-latest
+    environment: production # Optional: GitHub environment for tracking/protection
+    steps:
+      - name: Checkout Backend Repository
+        uses: actions/checkout@v4
+        with:
+          path: my-backend
+
+      - name: Checkout Frontend Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.REPO_FRONTEND }}
+          path: my-frontend
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Tag Frontend Image for ECR
+        # Rebuilds as images from 'build-and-test' job are ephemeral
+        run: |
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }} ./my-frontend
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_FRONTEND }}:latest ./my-frontend # Optional: Tag with latest
+
+      - name: Build and Tag Backend Image for ECR
+        run: |
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_BACKEND }}:${{ github.sha }} ./my-backend
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_BACKEND }}:latest ./my-backend
+
+      - name: Push Frontend Image to ECR
+        run: docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}
+
+      - name: Push Backend Image to ECR
+        run: docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_BACKEND }}:${{ github.sha }}
+
+      - name: Deploy to AWS (Your Specific Implementation)
+        run: |
+          echo "Deployment initiated for Frontend and Backend images tagged with ${{ github.sha }}"
+          # <<<--- CUSTOMIZE: REPLACE THIS SECTION with your actual AWS deployment commands.
+          # Example for ECS (Elastic Container Service):
+          # You would typically have an ECS Task Definition JSON file in your repo.
+          # You might update a service with a new task definition revision.
+          # aws ecs update-service --cluster YOUR_ECS_CLUSTER_NAME --service YOUR_ECS_FRONTEND_SERVICE_NAME \
+          #   --task-definition $(aws ecs register-task-definition --cli-input-json file://my-backend/ecs-frontend-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text) \
+          #   --force-new-deployment
+          # ...and similarly for the backend...
+          #
+          # Example for EC2 (SSH into instance and pull/run new images):
+          # This requires an SSH key stored as a GitHub Secret and the EC2 instance setup for Docker.
+          # uses: appleboy/ssh-action@v1.0.0
+          # with:
+          #   host: your-ec2-public-ip
+          #   username: ubuntu
+          #   key: ${{ secrets.SSH_PRIVATE_KEY }} # You'd add SSH_PRIVATE_KEY as another GitHub Secret
+          #   script: |
+          #     aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+          #     cd /path/to/your/app-on-ec2 # Make sure your docker-compose.yml is here
+          #     docker-compose pull frontend backend
+          #     docker-compose up -d --force-recreate frontend backend
+          #
+          echo "Remember to replace this placeholder with actual AWS deployment commands!"
