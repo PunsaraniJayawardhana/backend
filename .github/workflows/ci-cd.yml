@@ -29,18 +29,25 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ env.REPO_FRONTEND }}
-          path: my-frontend # Checks out your frontend repo into 'my-frontend' folder
+          path: my-app # Checks out your frontend repo into 'my-frontend' folder
           token: ${{ secrets.GH_PAT }} # Uses PAT for private repo access
 
       - name: Checkout Automation Repository
         uses: actions/checkout@v4
         with:
           repository: ${{ env.REPO_AUTOMATION }}
-          path: automation # Checks out your automation repo into 'automation' folder
+          path: testing # Checks out your automation repo into 'automation' folder
           token: ${{ secrets.GH_PAT }} # Uses PAT for private repo access
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+        # --- ADD THIS NEW STEP HERE ---
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+      # ----------------------------
 
       - name: Build Docker Images (with docker-compose)
         run: docker-compose -f my-backend/docker-compose.yml build # Points to the docker-compose file
