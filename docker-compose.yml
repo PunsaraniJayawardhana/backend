@@ -41,7 +41,7 @@ services:
     environment:
       - CYPRESS_baseUrl=http://frontend:3000
     volumes:
-      - ./automation:/cypress:/e2e
+      - ./automation:/e2e
 
 volumes:
   mongo-data:
