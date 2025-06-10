@@ -41,6 +41,7 @@ services:
       - frontend
     environment:
       - CYPRESS_baseUrl=http://frontend:3000
+      - CYPRESS_RECORD_KEY=${CYPRESS_RECORD_KEY}
     volumes:
       - ../automation:/e2e
 
