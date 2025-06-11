@@ -20,12 +20,12 @@ jobs:
 
       - name: Copy files to EC2
         run: |
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./ ubuntu@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/my-backend
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./ ubuntu@${{ secrets.EC2_PUBLIC_IP }}:/home/ubuntu/my-backend
 
       - name: SSH into EC2 and restart container
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
-            cd /home/ec2-user/my-backend
+            cd /home/ubuntu/my-backend
             docker-compose down
             docker-compose up --build -d
           EOF
