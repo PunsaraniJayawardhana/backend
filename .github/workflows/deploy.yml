@@ -19,8 +19,8 @@ jobs:
     - name: Build Docker image
       uses: docker/build-push-action@v5
       with:
-        context: ./Login-Backend  # ✅ This should point to your Dockerfile directory
-        file: ./Login-Backend/Dockerfile  # ✅ Explicit Dockerfile path
+        context: ./my-backend # ✅ This should point to your Dockerfile directory
+        file: ./my-backend/Dockerfile  # ✅ Explicit Dockerfile path
         tags: my-backend:latest
         outputs: type=docker
 
