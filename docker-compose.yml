@@ -22,28 +22,28 @@ services:
     volumes:
       - .:/app
 
-  frontend:
-    build: ../my-app
-    container_name: frontend
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
-    volumes:
-      - ../my-app:/app
-      - /app/node_modules
+  # frontend:
+  #   build: ../my-app
+  #   container_name: frontend
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - backend
+  #   volumes:
+  #     - ../my-app:/app
+  #     - /app/node_modules
 
-  cypress:
-    build: ../automation
-    working_dir: /e2e
-    container_name: cypress
-    depends_on:
-      - frontend
-    environment:
-      - CYPRESS_baseUrl=http://frontend:3000
-      - CYPRESS_RECORD_KEY=${CYPRESS_RECORD_KEY}
-    volumes:
-      - ../automation:/e2e
+  # cypress:
+  #   build: ../automation
+  #   working_dir: /e2e
+  #   container_name: cypress
+  #   depends_on:
+  #     - frontend
+  #   environment:
+  #     - CYPRESS_baseUrl=http://frontend:3000
+  #     - CYPRESS_RECORD_KEY=${CYPRESS_RECORD_KEY}
+  #   volumes:
+  #     - ../automation:/e2e
 
 volumes:
   mongo-data:
