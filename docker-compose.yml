@@ -20,7 +20,7 @@ services:
     depends_on:
       - mongo
     volumes:
-      - ./my-backend:/app
+      - .:/app
 
   frontend:
     build: ../my-app
