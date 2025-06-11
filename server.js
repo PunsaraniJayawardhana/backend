@@ -10,6 +10,10 @@ app.use(cors());
 // Connect Database
 connectDB();
 
+app.get('/', (req, res) => {
+  res.send('Backend is up and running');
+});
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 
