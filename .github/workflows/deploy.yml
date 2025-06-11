@@ -3,29 +3,45 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main  # or whichever branch you want to deploy
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-      - name: Copy files to EC2
-        run: |
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./ ubuntu@${{ secrets.EC2_PUBLIC_IP }}:/home/ubuntu/my-backend
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./Login-Backend  # ✅ This should point to your Dockerfile directory
+        file: ./Login-Backend/Dockerfile  # ✅ Explicit Dockerfile path
+        tags: my-backend:latest
+        outputs: type=docker
 
-      - name: SSH into EC2 and restart container
-        run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
-            cd /home/ubuntu/my-backend
-            docker compose down
-            docker compose up --build -d
-          EOF
+    - name: Copy files to EC2
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        source: "./Login-Backend/*"
+        target: "~/app"
+
+    - name: Run Docker container on EC2
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          cd ~/app
+          docker build -t my-backend .
+          docker stop backend || true
+          docker rm backend || true
+          docker run -d --name backend -p 3000:3000 my-backend
